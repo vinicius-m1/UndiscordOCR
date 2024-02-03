@@ -2,7 +2,7 @@
 
 ### **Requirements**
 
-- 🐍️ Python (discord.py), (pidfile), (ocr), (pytesseract)
+- 🐍️ Python (discord.py), (pytesseract)
 - 🤖 Discord bot token
 - [Tesseract](https://github.com/tesseract-ocr/tesseract)
 - [Leptonica](https://github.com/DanBloomberg/leptonica)
