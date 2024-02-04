@@ -2,16 +2,22 @@
 
 ### **Requirements**
 
-- 🐍️ Python (discord.py), (pytesseract)
+- 🐍️ Python 
 - 🤖 Discord bot token
 - [Tesseract](https://github.com/tesseract-ocr/tesseract)
-- [Leptonica](https://github.com/DanBloomberg/leptonica)
 
 
+### **Installation**
 
+- Use pip to install the Python modules
+    - [discord.py](https://github.com/Rapptz/discord.py)
+    - [pytesseract](https://github.com/madmaze/pytesseract)
 
-
-
+- Install [Tesseract](https://github.com/tesseract-ocr/tesseract) 
+    - follow the [installation guide](https://tesseract-ocr.github.io/tessdoc/Installation.html)
+	  for exemple:  `sudo apt install tesseract-ocr-por`
+	  to install Tesseract in Ubuntu for the Portuguese language 
+	- make sure it is in your PATH
 
 
 
