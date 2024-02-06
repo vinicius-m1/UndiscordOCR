@@ -3,7 +3,7 @@
 ### **Requirements**
 
 - 🐍️ Python 
-- 🤖 Discord bot token
+- 🤖 [Discord bot token](https://discord.com/developers/applications)
 - [Tesseract](https://github.com/tesseract-ocr/tesseract)
 
 
@@ -18,6 +18,9 @@
 	  for exemple:  `sudo apt install tesseract-ocr-por`
 	  to install Tesseract in Ubuntu for the Portuguese language 
 	- make sure it is in your PATH
+
+- Download the files from this repository and fill the configuration file
+    - run `python3 UndiscordOCR.py`
 
 
 
