@@ -14,29 +14,45 @@ config = ConfigParser()
 config.read("config.ini")
 config_data = config['default']
 token = config_data['token']
-channel_id = config_data['channel_id']
+channel_id = int(config_data['channel_id'])
 history_deletion = config_data['history_deletion']
 store_flagged = config_data['store_flagged_messeges']
-
+last_message = 'null'
 word = config_data['word']
-word.replace(",","")
+word = word.split(",")
 
 def words_in_string(word_list, text):
     return set(word_list).intersection(text.split())
 
 
 
+# COLORED TEXT    
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
 async def delete_history():
-    channel = client.get_channel(channel_id)
-    messages = [message async for message in channel.history(limit=100000)]
     
+    print (f"BLOCKED WORDS: {word}")
+    channel = client.get_channel(channel_id)
     i =0
-    for message in messages:
-        #contents.append(message.content)
+    #messages = [message async for message in channel.history(limit=1000)]
+    async for message in channel.history(limit = None):
         
+    #for message in messages:
         print(i)
         i = i+1
+        #last_message = message dont forget global
         if message.attachments:
+            
             url = message.attachments[0].url
             try:
                 img_data = requests.get(url).content            
@@ -57,20 +73,16 @@ async def delete_history():
 
             print (text)
             if words_in_string(word, text):
-                print("Detected blocked word! Deleting")
+                print(bcolors.WARNING, "Keyword found in OCR reading! Deleting chat message.", bcolors.ENDC)
                 await message.delete()
             else: os.remove(filename)
-            
-
-
-
 
 #WATCH FOR MESSAGES IN REAL TIME
 class MyClient(discord.Client):
     async def on_ready(self):
-        await MyClient.change_presence(status=discord.Status.invisible)
-        print(f'Logged on as {self.user}!')
 
+
+        print(f'Logged on as {self.user}!')        
 
         if history_deletion == 'True':
             await delete_history()
@@ -101,7 +113,7 @@ class MyClient(discord.Client):
             if words_in_string(word, text):
                 await message.delete()
                 print (bcolors.WARNING, "Keyword found in OCR reading! Deleting chat message.", bcolors.ENDC)
-                if store_flagged == 'False'
+                if store_flagged == 'False':
                     os.remove(filename)
             else: os.remove(filename)
             
@@ -112,15 +124,5 @@ class MyClient(discord.Client):
 client = MyClient(intents=intents)
 client.run(token)
 
-# COLORED TEXT    
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+
 
