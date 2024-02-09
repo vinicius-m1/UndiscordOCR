@@ -4,6 +4,7 @@ from PIL import Image
 import pytesseract
 import requests
 import os.path
+import asyncio
 from configparser import ConfigParser
 from datetime import datetime
 intents = discord.Intents.default()
@@ -44,38 +45,44 @@ async def delete_history():
     print (f"BLOCKED WORDS: {word}")
     channel = client.get_channel(channel_id)
     i =0
+    last_message = None
+    while True:
     #messages = [message async for message in channel.history(limit=1000)]
-    async for message in channel.history(limit = None):
+        async for message in channel.history(limit = 1000, before=last_message):
         
     #for message in messages:
-        print(i)
-        i = i+1
-        #last_message = message dont forget global
-        if message.attachments:
-            
-            url = message.attachments[0].url
-            try:
-                img_data = requests.get(url).content            
-                
-                filename = url.split('/')[-1]
-                filename = filename.split('?', 1)[0]
-                open(filename, 'wb').write(img_data) 
-            except: 
-                print("Error saving image") 
-                continue
-            
-            try:
-                text = pytesseract.image_to_string(filename) #OCR
-            except: 
-                print("Erro durante OCR")
-                os.remove(filename)
-                continue            
+            i = i+1
+            last_message = message.created_at
 
-            print (text)
-            if words_in_string(word, text):
-                print(bcolors.WARNING, "Keyword found in OCR reading! Deleting chat message.", bcolors.ENDC)
-                await message.delete()
-            else: os.remove(filename)
+            if message.attachments:
+            
+                url = message.attachments[0].url
+                try:
+                    img_data = requests.get(url).content            
+                
+                    filename = url.split('/')[-1]
+                    filename = filename.split('?', 1)[0]
+                    open(filename, 'wb').write(img_data) 
+                except: 
+                    print("Error saving image") 
+                    continue
+            
+                try:
+                    text = pytesseract.image_to_string(filename) #OCR
+                except: 
+                    print(bcolors.WARNING, "OCR Error, probably attachment not an image:",bcolors.ENDC,filename)
+                    os.remove(filename)
+                    continue            
+
+                #print (text)
+                if words_in_string(word, text):
+                    print(bcolors.WARNING, "Keyword found in OCR reading! Deleting chat message.", bcolors.ENDC)
+                    await message.delete()
+                else: os.remove(filename)
+        print(bcolors.OKCYAN, "Pausing for 5 seconds...",bcolors.ENDC)
+        print(f"{i} messages searched until now. last message was: {last_message}")
+        await asyncio.sleep(5)
+
 
 #WATCH FOR MESSAGES IN REAL TIME
 class MyClient(discord.Client):
@@ -123,6 +130,5 @@ class MyClient(discord.Client):
 
 client = MyClient(intents=intents)
 client.run(token)
-
 
 
