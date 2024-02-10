@@ -11,6 +11,9 @@ intents = discord.Intents.default()
 intents.message_content = True
 
 
+
+if not os.path.isdir('./images'): os.mkdir('./images')
+
 config = ConfigParser()
 config.read("config.ini")
 config_data = config['default']
@@ -18,7 +21,6 @@ token = config_data['token']
 channel_id = int(config_data['channel_id'])
 history_deletion = config_data['history_deletion']
 store_flagged = config_data['store_flagged_messeges']
-last_message = 'null'
 word = config_data['word']
 word = word.split(",")
 
@@ -48,40 +50,45 @@ async def delete_history():
     last_message = None
     while True:
     #messages = [message async for message in channel.history(limit=1000)]
-        async for message in channel.history(limit = 1000, before=last_message):
+        async for message in channel.history(limit = 100, before=last_message):
         
-    #for message in messages:
             i = i+1
             last_message = message.created_at
 
             if message.attachments:
             
                 url = message.attachments[0].url
-                try:
-                    img_data = requests.get(url).content            
+                filename = url.split('/')[-1]
+                filename = filename.split('?', 1)[0]
                 
-                    filename = url.split('/')[-1]
-                    filename = filename.split('?', 1)[0]
-                    open(filename, 'wb').write(img_data) 
-                except: 
-                    print("Error saving image") 
-                    continue
-            
-                try:
-                    text = pytesseract.image_to_string(filename) #OCR
-                except: 
-                    print(bcolors.WARNING, "OCR Error, probably attachment not an image:",bcolors.ENDC,filename)
-                    os.remove(filename)
-                    continue            
+                if filename.endswith(".png") or filename.endswith(".jpg") or filename.endswith(".jpeg") or filename.endswith(".webp"):
 
-                #print (text)
-                if words_in_string(word, text):
-                    print(bcolors.WARNING, "Keyword found in OCR reading! Deleting chat message.", bcolors.ENDC)
-                    await message.delete()
-                else: os.remove(filename)
-        print(bcolors.OKCYAN, "Pausing for 5 seconds...",bcolors.ENDC)
+                    try:
+                        fileLocation = os.path.join('./images', filename)
+                        img_data = requests.get(url).content
+                                
+                        open(fileLocation, 'wb').write(img_data) 
+                    except: 
+                        print(bcolors.ENDC,"Error saving image",bcolors.ENDC) 
+                        continue
+            
+                    try:
+                        text = pytesseract.image_to_string(fileLocation) #OCR
+                    except: 
+                        print(bcolors.WARNING, "OCR Error, probably attachment not an image:",bcolors.ENDC,filename)
+                        os.remove(fileLocation)
+                        continue            
+
+                    
+                    if words_in_string(word, text):
+                        print(bcolors.WARNING, "Keyword found in OCR reading! Deleting chat message.", bcolors.ENDC)
+                        print (text)
+                        await message.delete()
+                    else: os.remove(fileLocation)
+
+        
         print(f"{i} messages searched until now. last message was: {last_message}")
-        await asyncio.sleep(5)
+        
 
 
 #WATCH FOR MESSAGES IN REAL TIME
@@ -95,25 +102,20 @@ class MyClient(discord.Client):
             await delete_history()
 
     async def on_message(self, message):
-        #if message.author.id == (1203429051226787890):
-                     #await message.delete()   
-
-        #print(f'Message from {message.author}: {message.content}')
-        #with open('log.txt', 'a') as f:
-            #f.write(f'{datetime.now()} {message.author}: {message.content} \n')
+        
         if message.attachments:
             url = message.attachments[0].url
             img_data = requests.get(url).content
             filename = url.split('/')[-1]
             filename = filename.split('?', 1)[0]
+            fileLocation = os.path.join('./images', filename)
             
-
-            open(filename, 'wb').write(img_data)            
+            open(fileLocation, 'wb').write(img_data)            
 
             print (bcolors.OKCYAN,"Processing attachments!",bcolors.ENDC)
 
             
-            text = pytesseract.image_to_string(filename)
+            text = pytesseract.image_to_string(fileLocation)
             print (bcolors.OKGREEN, "OCR readings:", bcolors.ENDC, text)
             
             
@@ -121,8 +123,8 @@ class MyClient(discord.Client):
                 await message.delete()
                 print (bcolors.WARNING, "Keyword found in OCR reading! Deleting chat message.", bcolors.ENDC)
                 if store_flagged == 'False':
-                    os.remove(filename)
-            else: os.remove(filename)
+                    os.remove(fileLocation)
+            else: os.remove(fileLocation)
             
                 
         
