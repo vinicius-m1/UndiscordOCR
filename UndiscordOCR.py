@@ -5,6 +5,7 @@ import pytesseract
 import requests
 import os.path
 import asyncio
+import shutil
 import pickle
 from configparser import ConfigParser
 from datetime import datetime
@@ -13,7 +14,10 @@ intents.message_content = True
 
 
 
-if not os.path.isdir('./images'): os.mkdir('./images')
+if not os.path.isdir('./images'): 
+    os.mkdir('./images')
+    os.mkdir('./images/flagged')
+
 
 config = ConfigParser()
 config.read("config.ini")
@@ -59,6 +63,8 @@ async def delete_history():
     i =0
     #last_message = None
     #save_to_file(last_message)
+    instances =0
+    instances = instances + 1
     while True:
         last_message = load_from_file();
         async for message in channel.history(limit = 100, before=last_message):
@@ -71,24 +77,28 @@ async def delete_history():
                 url = message.attachments[0].url
                 filename = url.split('/')[-1]
                 filename = filename.split('?', 1)[0]
+                
                 await asyncio.sleep(0) #testing
                 if filename.endswith(".png") or filename.endswith(".jpg") or filename.endswith(".jpeg") or filename.endswith(".webp"):
 
                     try:
+                        filename = (str(message.created_at) + filename) # make filename more unique
+                        if (len(filename) >= 100): filename = filename[(len(filename)-10):] # trim if filename too big
+                        await asyncio.sleep(0) #testing
                         fileLocation = os.path.join('./images', filename)
                         img_data = requests.get(url).content
                                 
                         open(fileLocation, 'wb').write(img_data) 
                         await asyncio.sleep(0) #testing
-                    except: 
-                        print(bcolors.ENDC,"Error saving image",bcolors.ENDC) 
+                    except Exception as err: 
+                        print(bcolors.ENDC,"Error saving image",bcolors.ENDC, err) 
                         continue
             
                     try:
                         await asyncio.sleep(0) #testing
                         text = pytesseract.image_to_string(fileLocation) #OCR
-                    except: 
-                        print(bcolors.WARNING, "OCR Error, probably attachment not an image:",bcolors.ENDC,filename)
+                    except Exception as err: 
+                        print(bcolors.WARNING, "OCR Error, probably attachment not an image:",bcolors.ENDC,filename, err)
                         os.remove(fileLocation)
                         continue            
 
@@ -98,10 +108,11 @@ async def delete_history():
                         print(bcolors.WARNING, "Keyword found in OCR reading! Deleting chat message.", bcolors.ENDC)
                         print (text)
                         await message.delete()
+                        shutil.move( fileLocation,'./images/flagged')
                     else: os.remove(fileLocation)
-
+                    await asyncio.sleep(0) #testing
         
-        print(f"{i} messages searched until now. last message was: {last_message}")
+        print(f"{i} messages searched until now. inst:{instances} last message was: {last_message}")
         save_to_file(last_message)
 
 
@@ -121,23 +132,30 @@ class MyClient(discord.Client):
             img_data = requests.get(url).content
             filename = url.split('/')[-1]
             filename = filename.split('?', 1)[0]
-            fileLocation = os.path.join('./images', filename)
             
-            open(fileLocation, 'wb').write(img_data)            
+            
 
-            print (bcolors.OKCYAN,"Processing attachments!",bcolors.ENDC)
+            if filename.endswith(".png") or filename.endswith(".jpg") or filename.endswith(".jpeg") or filename.endswith(".webp"):
+                filename = (str(message.created_at) + filename) # make filename more unique
+                if (len(filename) >= 100): filename = filename[(len(filename)-10):] # trim if filename too big
 
+                fileLocation = os.path.join('./images', filename)
             
-            text = pytesseract.image_to_string(fileLocation)
-            print (bcolors.OKGREEN, "OCR readings:", bcolors.ENDC, text)
+                open(fileLocation, 'wb').write(img_data)            
+
+                print (bcolors.OKCYAN,"Processing attachments!",bcolors.ENDC)
+            
+                text = pytesseract.image_to_string(fileLocation)
+                print (bcolors.OKGREEN, "OCR readings:", bcolors.ENDC, text)
             
             
-            if words_in_string(word, text):
-                await message.delete()
-                print (bcolors.WARNING, "Keyword found in OCR reading! Deleting chat message.", bcolors.ENDC)
-                if store_flagged == 'False':
-                    os.remove(fileLocation)
-            else: os.remove(fileLocation)
+                if words_in_string(word, text):
+                     await message.delete()
+                     shutil.move( fileLocation,'./images/flagged')
+                     print (bcolors.WARNING, "Keyword found in OCR reading! Deleting chat message.", bcolors.ENDC)
+                     if store_flagged == 'False':
+                         os.remove(fileLocation)
+                else: os.remove(fileLocation)
             
             
 
