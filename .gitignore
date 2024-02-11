@@ -5,4 +5,5 @@ config.ini
 *.jpeg
 *.png
 *.webp
-
+*.pickle
+images
