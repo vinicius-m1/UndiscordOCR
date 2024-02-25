@@ -60,6 +60,24 @@ def load_from_file():
     with open('last_message.pickle', 'rb') as handle:
          return(pickle.load(handle))
 
+async def display_channels():
+    try:
+        guild = client.get_guild(server_id)
+        i = 0
+        print (f"{bcolors.OKCYAN}Channels:{bcolors.ENDC}")
+        for channel in guild.channels:
+            if (type(channel) == discord.channel.TextChannel):
+                i = i+1
+                print (f"[{i}] {channel.name}")
+        ignored_channels = input(f"{bcolors.OKCYAN}Ignore any channels? (ex: 1,2,4):{bcolors.ENDC}")
+        #ignored_channels = ignored_channels.split(",")
+        return str(ignored_channels)
+    except Exception as err: 
+        print (err)
+        return
+        
+
+
 #GETTING ID OF THE SERVER'S CHANNELS
 def get_channel_id(position):
     try:
@@ -84,27 +102,42 @@ async def delete_history():
         open('last_message.pickle', 'a').close()
         save_to_file(datetime.now())
 
-    i =0
+    i =100
     found = 0
     num_channels=0
     done_channels=0
     channel_mode=False
-
+    
     try:
         guild = client.get_guild(server_id)
         for channel in guild.channels:
             if (type(channel) == discord.channel.TextChannel):
                 num_channels=num_channels+1
+
+        local_ignored_channels = await display_channels()
+        
     except: 
         print (f"{bcolors.WARNING}Server ID not provided, defaulting to channel ID.{bcolors.ENDC}")
         num_channels=num_channels+1
         channel_mode = True
         channel = client.get_channel(channel_id) #defaults to this value if server_id not defined
+        if (input(f"{bcolors.WARNING}Continue from previous saved message? (y/n):{bcolors.ENDC}") == 'n'): save_to_file(datetime.now())
+    
         
     print (f"{bcolors.OKCYAN}Channel: {channel.name}{bcolors.ENDC} BLOCKED WORDS: {word}")
 
     while (num_channels != done_channels): 
         done_channels = done_channels+1
+        try:
+            print (f"{str(done_channels)} {local_ignored_channels}")
+            if (str(done_channels) in local_ignored_channels):
+                while words_in_string(str(done_channels), local_ignored_channels):
+                    done_channels = done_channels+1
+                    print (f"{bcolors.OKCYAN}Skipped ignored channel!{bcolors.ENDC}")
+            else: print (f"{bcolors.OKCYAN}No channels were ignored.{bcolors.ENDC}")
+        except Exception as err:
+            print (err)
+            pass
 
         print (f"{bcolors.OKCYAN}Channels: {done_channels}/{num_channels}{bcolors.ENDC}")
 
@@ -114,7 +147,6 @@ async def delete_history():
         async for message in channel.history(limit=1, oldest_first=True):
             first_message = message.created_at
         print (bcolors.OKCYAN,"first message: ",bcolors.ENDC,first_message) #getting where to stop searching for more messages
-
         while True:
             last_message = load_from_file();
             async for message in channel.history(limit = 100, before=last_message):
@@ -124,6 +156,7 @@ async def delete_history():
                 await asyncio.sleep(0) #testing
                 if message.attachments:
             
+                    #treating url to get filename and extension
                     url = message.attachments[0].url
                     filename = url.split('/')[-1]
                     filename = filename.split('?', 1)[0]
@@ -180,9 +213,10 @@ async def delete_history():
 #WATCH FOR MESSAGES IN REAL TIME (all channels)
 class MyClient(discord.Client):
     async def on_ready(self):
-        print(f'Logged on as {self.user}!')   
+        print(f'{bcolors.OKGREEN}Logged on as {self.user}! {bcolors.ENDC}')   
         if history_deletion == 'True':
-            await delete_history()    
+            await delete_history()
+        else: print(f"{bcolors.OKCYAN}[INFO] delete_history is disabled.{bcolors.ENDC}")    
     
     async def on_message(self, message):
         
