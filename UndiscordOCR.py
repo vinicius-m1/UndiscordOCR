@@ -26,14 +26,13 @@ config_data = configParser['default']
 class config:
     token = config_data['token']
     lang_ocr = config_data['lang_ocr']
-    channel_id = None
     try:
         channel_id = int(config_data['channel_id'])
-    except: pass
+    except: channel_id = None
     history_deletion = config_data['history_deletion']
     try:
         server_id = int(config_data['server_id'])
-    except: pass
+    except: server_id = None
     store_flagged = config_data['store_flagged_messeges']
     word = config_data['word']
     word = word.split(",")
